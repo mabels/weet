@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Smoke a bit</title>
+</head>
+<body>
+<h1>Weet Test</h1>
+
+<ul>
+  <li class="test_wert">not good</li>
+  <li class="set_test_wert">not good</li>
+  <li class="decode">not good</li>
+</ul>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script>
+<script src="http://documentcloud.github.com/underscore/underscore-min.js" type="text/javascript"></script>
+<script src="http://joose-js.googlecode.com/files/joose.mini.js" type="text/javascript"></script>
+<script src="http://github.com/mabels/q_code/raw/master/q_code.js" type="text/javascript"></script>
+<script src="weet.js"></script>
+<script>
+$(function() {
+  window.location.hash = Q.encode(JSON.stringify({ test: { wert : "from_hash" } }))
+  var id = Weet.subscribe('test.wert', function(val) { $('.test_wert').html('good='+val) })
+  Weet.unsubscribe(id)
+  Weet.set('test.wert', 'direct')
+  var id = Weet.subscribe('test.wert', function(val) { $('.set_test_wert').html('direct='+val) })
+  $('.decode').html('direct='+JSON.parse(Q.decode(window.location.hash.slice(1))).test.wert)
+})
+</script>
+</body>
+</html>
