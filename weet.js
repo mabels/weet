@@ -16,6 +16,9 @@ Class('Weet', {
       createHash: function(selector, value) {
         return this.getInstance().createHash(selector, value) 
       },
+      extendHash: function(obj) {
+        return this.getInstance().extendHash(obj) 
+      },
       deReference: function(name, base) {
         var split = name.split('.')
         var result = _(split).select(function(c) {
@@ -56,9 +59,10 @@ Class('Weet', {
       this.extend(base)
     },
     createHash: function(selector, value) {
-      var base = this.objectify(selector, value);
-      var future = jQuery.extend(true, this.weet, base)
-      return Q.encode(JSON.stringify(future))
+      return this.extendHash(this.objectify(selector, value))
+    },
+    extendHash: function(obj) {
+      return Q.encode(JSON.stringify(jQuery.extend(true, this.weet, obj)))
     },
     extend: function(obj) {
       var call_later = [] 
