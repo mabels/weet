@@ -62,7 +62,7 @@ Class('Weet', {
       return this.extendHash(this.objectify(selector, value))
     },
     extendHash: function(obj) {
-      return Q.encode(JSON.stringify(jQuery.extend(true, this.weet, obj)))
+      return Q.encode(JSON.stringify(jQuery.extend(true, {}, this.weet, obj)))
     },
     extend: function(obj) {
       var call_later = [] 
