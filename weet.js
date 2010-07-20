@@ -10,6 +10,9 @@ Class('Weet', {
       set: function(selector, value) {
         this.getInstance().set(selector, value) 
       },
+      obj: function() {
+        return this.getInstance().weet
+      },
       deReference: function(name, base) {
         var split = name.split('.')
         var result = _(split).select(function(c) {
