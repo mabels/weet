@@ -10,6 +10,9 @@ Class('Weet', {
       set: function(selector, value) {
         this.getInstance().set(selector, value) 
       },
+      extend: function(obj) {
+        this.getInstance().extend(obj)
+      },
       createHash: function(selector, value) {
         return this.getInstance().createHash(selector, value) 
       },
@@ -51,7 +54,6 @@ Class('Weet', {
     set: function(selector, value) {
       var base = this.objectify(selector, value);
       this.extend(base)
-      window.location.hash = Q.encode(JSON.stringify(this.weet))
     },
     createHash: function(selector, value) {
       var base = this.objectify(selector, value);
@@ -66,6 +68,7 @@ Class('Weet', {
       })
       this.weet = jQuery.extend(true, this.weet, obj)
       _(call_later).each(function(i) { _(i.funcs).chain().values().each(function(fn) { fn(i.reference.value) }) })
+      window.location.hash = Q.encode(JSON.stringify(this.weet))
     },
     objectify: function(selector, value) {
       var split = selector.split('.')
