@@ -9,6 +9,7 @@
   <li class="test_wert">not good</li>
   <li class="set_test_wert">not good</li>
   <li class="decode">not good</li>
+  <li class="hash">not good</li>
 </ul>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script>
@@ -24,6 +25,8 @@ $(function() {
   Weet.set('test.wert', 'direct')
   var id = Weet.subscribe('test.wert', function(val) { $('.set_test_wert').html('direct='+val) })
   $('.decode').html('direct='+JSON.parse(Q.decode(window.location.hash.slice(1))).test.wert)
+
+  $('.hash').html('pot=' + JSON.parse(Q.decode(Weet.createHash('test.hash', 'pot'))).test.hash)
 })
 </script>
 </body>

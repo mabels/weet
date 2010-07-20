@@ -10,6 +10,9 @@ Class('Weet', {
       set: function(selector, value) {
         this.getInstance().set(selector, value) 
       },
+      createHash: function(selector, value) {
+        return this.getInstance().createHash(selector, value) 
+      },
       deReference: function(name, base) {
         var split = name.split('.')
         var result = _(split).select(function(c) {
@@ -46,16 +49,14 @@ Class('Weet', {
       })
     },
     set: function(selector, value) {
-      var split = selector.split('.')
-      var last = split.pop()
-      var base = {}
-      _(split).reduce(base, function(tmp, c) {
-        var o = {}
-        tmp[c] = o
-        return o
-      })[last] = value
+      var base = this.objectify(selector, value);
       this.extend(base)
       window.location.hash = Q.encode(JSON.stringify(this.weet))
+    },
+    createHash: function(selector, value) {
+      var base = this.objectify(selector, value);
+      var future = jQuery.extend(true, this.weet, base)
+      return Q.encode(JSON.stringify(future))
     },
     extend: function(obj) {
       var call_later = [] 
@@ -65,7 +66,13 @@ Class('Weet', {
       })
       this.weet = jQuery.extend(true, this.weet, obj)
       _(call_later).each(function(i) { _(i.funcs).chain().values().each(function(fn) { fn(i.reference.value) }) })
-
+    },
+    objectify: function(selector, value) {
+      var split = selector.split('.')
+      var last = split.pop()
+      var base = {}
+      _(split).reduce(base, function(tmp, c) { return tmp[c] = {} })[last] = value
+      return base
     }
   }
 })
