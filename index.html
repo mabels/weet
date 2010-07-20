@@ -10,6 +10,9 @@
   <li class="test_wert">not good</li>
   <li class="set_test_wert">not good</li>
   <li class="decode">not good</li>
+  <li class="hash">not good</li>
+  <li class="extend">not good</li>
+  <li class="extend2">not good</li>
 </ul>
 <a href='#^!"$%&%20 /()=_:;<>,.-+~{[]}'>case1</a>
 <a href='# wurst'>case1</a>
@@ -99,7 +102,7 @@
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script>
 <script src="http://documentcloud.github.com/underscore/underscore-min.js" type="text/javascript"></script>
 <script src="http://joose-js.googlecode.com/files/joose.mini.js" type="text/javascript"></script>
-<script src="q_code.js" type="text/javascript"></script>
+<script src="http://github.com/mabels/q_code/raw/master/q_code.js" type="text/javascript"></script>
 <script src="weet.js"></script>
 <script>
 $(function() {
@@ -133,6 +136,14 @@ $(function() {
   Weet.set('test.wert', 'direct+ +Xklar?')
   var id = Weet.subscribe('test.wert', function(val) { $('.set_test_wert').html('direct='+val) })
   $('.decode').html('direct='+JSON.parse(Q.decode(window.location.hash.slice(1))).test.wert)
+  $('.hash').html('pot=' + JSON.parse(Q.decode(Weet.createHash('test.hash', 'pot'))).test.hash)
+  
+  // extend
+  Weet.subscribe('extend.me', function(val) { $('.extend').html('extend=' + val) })
+  Weet.extend({extend:{me: 'extend'}})
+
+  // extendHash
+  $('.extend2').html('too extended=' + JSON.parse(Q.decode(Weet.extendHash({extend:{me2: 'too extended'}}))).extend.me2)
 })
 </script>
 </body>
