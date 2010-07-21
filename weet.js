@@ -10,6 +10,9 @@ Class('Weet', {
       set: function(selector, value) {
         this.getInstance().set(selector, value) 
       },
+      get: function(selector) {
+        this.getInstance().get(selector) 
+      },
       extend: function(obj) {
         this.getInstance().extend(obj)
       },
@@ -57,6 +60,10 @@ Class('Weet', {
     set: function(selector, value) {
       var base = this.objectify(selector, value);
       this.extend(base)
+    },
+    get: function(selector) {
+      var ref = Weet.deReference(selector, this.weet)
+      return ref.found ? ref.value : null
     },
     createHash: function(selector, value) {
       return this.extendHash(this.objectify(selector, value))

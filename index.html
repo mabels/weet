@@ -12,6 +12,7 @@
   <li class="hash">not good</li>
   <li class="extend">not good</li>
   <li class="extend2">not good</li>
+  <li class="get">not good</li>
 </ul>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script>
@@ -35,6 +36,10 @@ $(function() {
 
   // extendHash
   $('.extend2').html('too extended=' + JSON.parse(Q.decode(Weet.extendHash({extend:{me2: 'too extended'}}))).extend.me2)
+
+  // get
+  Weet.set('some.value.to.get', 'blubs')
+  $('.get').html('blubs=' + Weet.get('some.value.to.get'))
 })
 </script>
 </body>
