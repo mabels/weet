@@ -13,6 +13,7 @@
   <li class="hash">not good</li>
   <li class="extend">not good</li>
   <li class="extend2">not good</li>
+  <li class="extend_from_hash">not good</li>
 </ul>
 <a href='#^!"$%&%20 /()=_:;<>,.-+~{[]}'>case1</a>
 <a href='# wurst'>case1</a>
@@ -144,6 +145,17 @@ $(function() {
 
   // extendHash
   $('.extend2').html('too extended=' + JSON.parse(Q.decode(Weet.extendHash({extend:{me2: 'too extended'}}))).extend.me2)
+
+  var id = Weet.subscribe('meno', function(val) {
+    $('.extend_from_hash').html('ist doof=' + val) 
+  })
+  var obj = Weet.parse_hash(window.location.hash)
+  obj.meno = "ist doof"
+  window.location.hash = Q.encode(JSON.stringify(obj)) 
+  //Weet.unsubscribe(id)
+
+
+
 })
 </script>
 </body>

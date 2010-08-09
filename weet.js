@@ -29,6 +29,13 @@ Class('Weet', {
           return typeof(base) != 'undefined'
         })
         return { found: result.length == split.length, value: base }
+      },
+      parse_hash: function(hash) {
+        try {
+          return JSON.parse(Q.decode(hash.slice(1)))
+        } catch (e) {
+          return null
+        }
       }
   },
   methods: {
@@ -37,7 +44,26 @@ Class('Weet', {
       this.subscription_id = 0
       this.weet = {}
       if (window.location.hash.length > 1) {
-        this.extend(JSON.parse(Q.decode(window.location.hash.slice(1))))
+        this.extend(Weet.parse_hash(window.location.hash))
+      }
+      this.hash_change()
+    },
+
+    hash_change: function() {
+      var self = this
+      if (jQuery.browser.msie && jQuery.browser.version < 8) {
+        var weet_cache = window.location.hash
+        setInterval(function() {
+          var hash = window.location.hash 
+          if (hash != self.weet_cache) {
+            weet_cache = hash
+            self.extend(Weet.parse_hash(weet_cache))
+          }
+        }, 150)
+      } else {
+        $(window).bind('hashchange', function() { 
+          self.extend(Weet.parse_hash(window.location.hash))
+        })
       }
     },
 
@@ -68,6 +94,7 @@ Class('Weet', {
       return Q.encode(JSON.stringify(jQuery.extend(true, {}, this.weet, obj)))
     },
     extend: function(obj) {
+      if (!obj) { return obj }
       var call_later = [] 
       _(this.subscriptions).each(function(funcs, selector) {
         var ref = Weet.deReference(selector, obj)
