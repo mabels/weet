@@ -85,7 +85,7 @@ Class('Weet', {
     },
     set: function(selector, value) {
       var base = this.objectify(selector, value);
-      this.extend(base)
+      this.extend(base, true)
     },
     createHash: function(selector, value) {
       return this.extendHash(this.objectify(selector, value))
@@ -93,12 +93,12 @@ Class('Weet', {
     extendHash: function(obj) {
       return Q.encode(JSON.stringify(jQuery.extend(true, {}, this.weet, obj)))
     },
-    extend: function(obj) {
+    extend: function(obj, ignore_subscription) {
       if (!obj) { return obj }
       var call_later = [] 
-      _(this.subscriptions).each(function(funcs, selector) {
-        var ref = Weet.deReference(selector, obj)
-        ref.found && call_later.push({reference: ref, funcs: funcs})
+      !ignore_subscription && _(this.subscriptions).each(function(funcs, selector) {
+          var ref = Weet.deReference(selector, obj)
+          ref.found && call_later.push({reference: ref, funcs: funcs})
       })
       this.weet = jQuery.extend(true, this.weet, obj)
       _(call_later).each(function(i) { _(i.funcs).chain().values().each(function(fn) { fn(i.reference.value) }) })
