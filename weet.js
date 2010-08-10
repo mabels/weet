@@ -57,12 +57,13 @@ Class('Weet', {
     hash_change: function() {
       var self = this
       if (jQuery.browser.msie && jQuery.browser.version < 8) {
-        var weet_cache = window.location.hash
+        var hash = window.location.hash
         setInterval(function() {
-          var hash = window.location.hash 
-          if (hash != self.weet_cache) {
-            weet_cache = hash
-            self.extend(Weet.parse_hash(weet_cache))
+          if (hash == window.location.hash) {
+            return
+          } else {
+            self.extend(Weet.parse_hash(window.location.hash))
+            hash = window.location.hash
           }
         }, 150)
       } else {
