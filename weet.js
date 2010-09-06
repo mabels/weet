@@ -2,83 +2,184 @@ Class('Weet', {
   does: Joose.Singleton,
   classMethods: {
     subscribe: function(selector, fn) {
-      return this.getInstance().subscribe(selector, fn)
+      return this.getInstance().subscribe(selector, fn);
     },
     unsubscribe: function(id) {
-      this.getInstance().unsubscribe(id)
+      this.getInstance().unsubscribe(id);
     },
     get: function(selector) {
-      return this.getInstance().weet[selector] || null
+      return this.getInstance().get(selector);
     },
     set: function(selector, value) {
-      this.getInstance().set(selector, value)
+      this.getInstance().set(selector, value);
     },
     obj: function() {
-      return this.getInstance().weet
+      return this.merge({}, this.getInstance().weet);
     },
     extend: function(obj) {
-      this.getInstance().extend(obj)
+      this.getInstance().extend(obj);
     },
     createHash: function(selector, value) {
-      return this.getInstance().createHash(selector, value)
+      return this.getInstance().createHash(selector, value);
     },
     extendHash: function(obj) {
-      return this.getInstance().extendHash(obj)
+      return this.getInstance().extendHash(obj);
     },
     deReference: function(name, base) {
-      var split = name.split('.')
+      var split = name.split('.');
       var result = _(split).select(function(c) {
-        base = !base || base[c]
-        return typeof(base) != 'undefined'
+        base = !base || base[c];
+        return typeof(base) != 'undefined';
       })
       return { found: result.length == split.length, value: base }
     },
-    parse_hash: function(hash) {
-      if (hash == '#' || hash.length == 0) {
-        return { state: 'empty', value: {} }
+    objectify: function(selector, value) {
+      var split = selector.split('.');
+      var last = split.pop();
+      var base = {};
+      _(split).reduce(base, function(tmp, c) {
+        return tmp[c] = {};
+      })[last] = value;
+      return base;
+    },
+    parse: function(str) {
+      str = str.replace(/^\#\!/, '#');
+      if (str == '#' || str.length == 0) {
+        return {};
       }
       try {
-        return { state: 'ok', value: JSON.parse(Q.decode(hash.slice(1))) }
+        return JSON.parse(Q.decode(str.slice(1)));
       } catch (e) {
-        return { state: 'error', value: null }
+        return null;
       }
+    },
+    merge: function(target) {
+      for (var i = 1, len = arguments.length; i < len; i++) {
+        var val = arguments[i];
+        var copy = JSON.parse(JSON.stringify(val));
+        for (var j in copy) {
+          if (copy[j] === null) {
+            delete target[j];
+          } else if (typeof target[j] == 'object') {
+            this.merge(target[j], copy[j]);
+          } else {
+            target[j] = copy[j];
+          }
+        }
+      }
+      return target;
+    },
+    differences: function(origin, modification, path, ret) {
+      var self = this;
+      if (!ret) { ret = {}; }
+      if (!path) { path = ''; }
+      modification && _(modification).each(function(v, k, o, m, tmp) {
+        o = (origin && origin[k]) || null;
+        m = modification[k];
+        if (!o) {
+          if (typeof m == 'object') {
+            ret[_([path, k]).compact().join('.')] = {
+              action: 'added',
+              value: m
+            };
+            self.differences(o, m, _([path, k]).compact().join('.'), ret);
+          } else {
+            ret[_([path,k]).compact().join('.')] = {
+              action: 'added',
+              value: m
+            };
+          }
+        } else if (JSON.stringify(m) != JSON.stringify(o)) {
+          if(typeof m == 'object') {
+            ret[_([path, k]).compact().join('.')] = {
+              action: 'modified',
+              value: m
+            };
+            self.differences(o, m, _([path,k]).compact().join('.'), ret);
+          } else if (JSON.stringify(m) != JSON.stringify(o)) {
+            ret[_([path,k]).compact().join('.')] = {
+              action: 'modified',
+              value: m
+            };
+          }
+        } else {
+        }
+      });
+      origin && _(origin).each(function(v, k, o, m) {
+        o = origin[k];
+        m = (modification && modification[k]) || null;
+        if (!m) {
+          if (typeof o == 'object') {
+            ret[_([path,k]).compact().join('.')] = {
+              action: 'deleted',
+              value: null
+            };
+            self.differences(o, m, _([path,k]).compact().join('.'), ret);
+          } else {
+            ret[_([path,k]).compact().join('.')] = {
+              action: 'deleted',
+              value: null
+            };
+          }
+        }
+      });
+      return ret;
     }
   },
   methods: {
     initialize: function() {
-      this.subscriptions = {}
-      this.subscription_id = 0
-      this.weet = {}
-      if (window.location.hash.length > 1) {
-        this.extend(Weet.parse_hash(window.location.hash))
+      this.weet = {};
+      this.subscriptions = {};
+      this.subscription_id = 0;
+      if (typeof window != 'undefined') {
+        this.observe();
+        if(window.location.hash.length > 1) {
+          $(window).trigger('hashchange');
+        }
       }
-      this.hash_change()
     },
-    hash_change: function() {
+    observe: function() {
       var self = this
-      if (jQuery.browser.msie && jQuery.browser.version < 8) {
-        var hash = window.location.hash
-        setInterval(function() {
-          if (hash == window.location.hash) {
-            return
-          } else {
-            self.extend(Weet.parse_hash(window.location.hash))
-            hash = window.location.hash
-          }
-        }, 150)
-      } else {
-        $(window).bind('hashchange', function() {
-          self.extend(Weet.parse_hash(window.location.hash))
-        })
-      }
+      $(window).hashchange(function() { // depends on jquery.ba-hashchange.js
+        self.notify()
+      })
+    },
+    notify: function() {
+      var self = this;
+      var fn_stack = [];
+      var location = this.meta.c.parse(window.location.hash);
+      var diffs = this.meta.c.differences(this.weet, location);
+      _(diffs).each(function(v, k) {
+        self.subscriptions[k] && _(self.subscriptions[k]).each(function(funcs) {
+          fn_stack.push({
+            action: v.action,
+            value: v.value,
+            funcs: funcs
+          });
+        });
+      });
+      _(fn_stack).each(function(fn) {
+        if(typeof fn.funcs == 'function') {
+          fn.funcs(fn.value, fn.action);
+        } else {
+          fn.funcs[fn.action](fn.value);
+        }
+      });
+     this.weet = location;
     },
     subscribe: function(selector, fn) {
       if (!this.subscriptions[selector]) {
-        this.subscriptions[selector] = {}
+        this.subscriptions[selector] = {};
       }
-      this.subscriptions[selector][this.subscription_id++] = fn
-      var val = Weet.deReference(selector, this.weet)
-      val.found && fn.modified(val.value)
+      this.subscriptions[selector][this.subscription_id++] = fn;
+      var val = this.meta.c.deReference(selector, this.weet);
+      if(val.found) {
+        if(typeof fn == 'function') {
+          fn(val.value, 'modified');
+        } else {
+          fn.modified(val.value);
+        }
+      }
       return this.subscription_id-1
     },
     unsubscribe: function(id) {
@@ -88,48 +189,26 @@ Class('Weet', {
         }
       })
     },
+    get: function(selector) {
+      var ret = this.meta.c.merge({}, this.weet);
+      var split = selector.split('.');
+      for (var i in split) {
+        ret = ret[split[i]];
+      }
+      return ret;
+    },
     set: function(selector, value) {
-      var base = this.objectify(selector, value)
-      this.extend({ state: 'ok', value: base}, true)
+      this.extend(this.meta.c.objectify(selector, value));
     },
     createHash: function(selector, value) {
-      return this.extendHash(this.objectify(selector, value))
+      return this.extendHash(this.meta.c.objectify(selector, value))
     },
     extendHash: function(obj) {
-      return Q.encode(JSON.stringify(jQuery.extend(true, {}, this.weet, obj)))
+      return Q.encode(JSON.stringify(this.meta.c.merge({}, this.weet, obj)))
     },
-    extend: function(obj, ignore_subscription) {
-      var self = this
-      if (obj.state == 'error') { return }
-      var call_later = []
-      var weet = Weet.parse_hash(window.location.hash)
-      if (weet.state == 'error') { return }
-      !ignore_subscription && _(this.subscriptions).each(function(funcs, selector) {
-        var ref = Weet.deReference(selector, obj.value)
-        if (ref.found) {
-          call_later.push({reference: ref, funcs: funcs, action: 'modified'})
-          return
-        }
-        var ref = Weet.deReference(selector, self.weet)
-        if (ref.found) {
-          call_later.push({reference: {found: true, value: null }, funcs: funcs, action: 'deleted'})
-          return
-        }
-      })
-      if ((weet.state == 'ok' || weet.state == 'empty') && obj.state == 'ok') {
-        this.weet = jQuery.extend(true, weet.value, obj.value)
-        weet.state = 'ok'
-      }
-      _(call_later).each(function(i) { _(i.funcs).chain().values().each(function(fn) { fn[i.action](i.reference.value) }) })
-      weet.state == 'ok' && (window.location.hash = Q.encode(JSON.stringify(this.weet)))
-    },
-    objectify: function(selector, value) {
-      var split = selector.split('.')
-      var last = split.pop()
-      var base = {}
-      _(split).reduce(base, function(tmp, c) { return tmp[c] = {} })[last] = value
-      return base
+    extend: function(obj) {
+      var location = this.meta.c.merge({}, this.weet, obj);
+      window.location.hash = Q.encode('!'+JSON.stringify(location));
     }
   }
 })
-
