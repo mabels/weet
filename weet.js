@@ -25,6 +25,12 @@ Class('Weet', {
     extendHash: function(obj) {
       return this.getInstance().extendHash(obj);
     },
+    overwriteHash: function(obj) {
+      this.getInstance().overwriteHash(obj);
+    },
+    clearHash: function() {
+      this.getInstance().clearHash();
+    },
     deReference: function(name, base) {
       var split = name.split('.');
       var result = _(split).select(function(c) {
@@ -43,7 +49,7 @@ Class('Weet', {
       return base;
     },
     parse: function(str) {
-      str = str.replace(/^\#\!/, '#');
+      str = str.replace(/^\#\!/, "#");
       if (str == '#' || str.length == 0) {
         return {};
       }
@@ -131,7 +137,7 @@ Class('Weet', {
       this.weet = {};
       this.subscriptions = {};
       this.subscription_id = 0;
-      if (typeof window != 'undefined') {
+      if (typeof window != "undefined") {
         this.observe();
         if(window.location.hash.length > 1) {
           $(window).trigger('hashchange');
@@ -158,6 +164,7 @@ Class('Weet', {
           });
         });
       });
+      this.weet = location;
       _(fn_stack).each(function(fn) {
         if(typeof fn.funcs == 'function') {
           fn.funcs(fn.value, fn.action);
@@ -165,7 +172,6 @@ Class('Weet', {
           fn.funcs[fn.action](fn.value);
         }
       });
-     this.weet = location;
     },
     subscribe: function(selector, fn) {
       if (!this.subscriptions[selector]) {
@@ -180,7 +186,7 @@ Class('Weet', {
           fn.modified(val.value);
         }
       }
-      return this.subscription_id-1
+      return this.subscription_id-1;
     },
     unsubscribe: function(id) {
       _(this.subscriptions).each(function(funcs, selector) {
@@ -206,9 +212,15 @@ Class('Weet', {
     extendHash: function(obj) {
       return Q.encode(JSON.stringify(this.meta.c.merge({}, this.weet, obj)))
     },
+    overwriteHash: function(obj) {
+      window.location.hash = Q.encode("!"+JSON.stringify(obj));
+    },
+    clearHash: function() {
+      window.location.hash = Q.encode("!"+JSON.stringify({}));
+    },
     extend: function(obj) {
       var location = this.meta.c.merge({}, this.weet, obj);
-      window.location.hash = Q.encode('!'+JSON.stringify(location));
+      window.location.hash = Q.encode("!"+JSON.stringify(location));
     }
   }
 })
