@@ -120,26 +120,26 @@ Class('Weet', {
           if (typeof m == 'object') {
             ret[_([path, k]).compact().join('.')] = {
               action: 'added',
-              value: m
+              value: _.isArray(modification) ? modification : m
             };
             self.differences(o, m, _([path, k]).compact().join('.'), ret);
           } else {
             ret[_([path,k]).compact().join('.')] = {
               action: 'added',
-              value: m
+              value: _.isArray(modification) ? modification : m
             };
           }
         } else if (JSON.stringify(m) != JSON.stringify(o)) {
           if(typeof m == 'object') {
             ret[_([path, k]).compact().join('.')] = {
               action: 'modified',
-              value: m
+              value: _.isArray(modification) ? modification : m
             };
             self.differences(o, m, _([path,k]).compact().join('.'), ret);
           } else if (JSON.stringify(m) != JSON.stringify(o)) {
             ret[_([path,k]).compact().join('.')] = {
               action: 'modified',
-              value: m
+              value: _.isArray(modification) ? modification : m
             };
           }
         } else {
