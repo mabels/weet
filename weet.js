@@ -1,3 +1,10 @@
+if(typeof importScript != "undefined") {
+  importScript("global/require.ds");
+  requireJoose();
+  requireQ();
+  require_();
+}
+
 Class('Weet', {
   does: Joose.Singleton,
   classMethods: {
@@ -11,7 +18,10 @@ Class('Weet', {
       return this.getInstance().get(selector);
     },
     set: function(selector, value) {
-      this.getInstance().set(selector, value);
+      return this.getInstance().set(selector, value);
+    },
+    setHash: function(selector, value) {
+      return this.getInstance().setHash(selector, value);
     },
     obj: function() {
       return this.merge({}, this.getInstance().weet);
@@ -25,6 +35,12 @@ Class('Weet', {
     extendHash: function(obj) {
       return this.getInstance().extendHash(obj);
     },
+    extendHref: function(obj) {
+      return this.getInstance().extendHref(obj);
+    },
+    extendObj: function(obj) {
+      return this.getInstance().extendObj(obj);
+    },
     overwriteHash: function(obj) {
       this.getInstance().overwriteHash(obj);
     },
@@ -36,8 +52,8 @@ Class('Weet', {
       var result = _(split).select(function(c) {
         base = !base || base[c];
         return typeof(base) != 'undefined';
-      })
-      return { found: result.length == split.length, value: base }
+      });
+      return { found: result.length == split.length, value: base };
     },
     objectify: function(selector, value) {
       var split = selector.split('.');
@@ -49,7 +65,6 @@ Class('Weet', {
       return base;
     },
     parse: function(str) {
-      str = str.replace(/^\#\!/, "#");
       if (str == '#' || str.length == 0) {
         return {};
       }
@@ -74,6 +89,20 @@ Class('Weet', {
         }
       }
       return target;
+    },
+    overwrite: function(obj, keys, value) {
+      var key = keys.shift();
+      if (keys.length) {
+        obj[key] = this.overwrite(typeof obj[key] == "object" ? obj[key] : {}, keys, value);
+        return obj;
+      } else {
+        if (value === null) {
+          delete obj[key];
+        } else {
+          obj[key] = value;
+        }
+      }
+      return obj;
     },
     differences: function(origin, modification, path, ret) {
       var self = this;
@@ -145,33 +174,35 @@ Class('Weet', {
       }
     },
     observe: function() {
-      var self = this
+      var self = this;
       $(window).hashchange(function() { // depends on jquery.ba-hashchange.js
-        self.notify()
-      })
+        self.notify();
+      });
     },
     notify: function() {
       var self = this;
       var fn_stack = [];
       var location = this.meta.c.parse(window.location.hash);
-      var diffs = this.meta.c.differences(this.weet, location);
-      _(diffs).each(function(v, k) {
-        self.subscriptions[k] && _(self.subscriptions[k]).each(function(funcs) {
-          fn_stack.push({
-            action: v.action,
-            value: v.value,
-            funcs: funcs
+      if (location) {
+        var diffs = this.meta.c.differences(this.weet, location);
+        _(diffs).each(function(v, k) {
+          self.subscriptions[k] && _(self.subscriptions[k]).each(function(funcs) {
+            fn_stack.push({
+              action: v.action,
+              value: v.value,
+              funcs: funcs
+            });
           });
         });
-      });
-      this.weet = location;
-      _(fn_stack).each(function(fn) {
-        if(typeof fn.funcs == 'function') {
-          fn.funcs(fn.value, fn.action);
-        } else {
-          fn.funcs[fn.action](fn.value);
-        }
-      });
+        this.weet = location;
+        _(fn_stack).each(function(fn) {
+          if(typeof fn.funcs == 'function') {
+            fn.funcs(fn.value, fn.action);
+          } else {
+            fn.funcs[fn.action](fn.value);
+          }
+        });
+      }
     },
     subscribe: function(selector, fn) {
       if (!this.subscriptions[selector]) {
@@ -181,7 +212,7 @@ Class('Weet', {
       var val = this.meta.c.deReference(selector, this.weet);
       if(val.found) {
         if(typeof fn == 'function') {
-          fn(val.value, 'modified');
+          fn(val.value, 'initialized');
         } else {
           fn.modified(val.value);
         }
@@ -191,36 +222,51 @@ Class('Weet', {
     unsubscribe: function(id) {
       _(this.subscriptions).each(function(funcs, selector) {
         if (funcs[id]) {
-          delete funcs[id]
+          delete funcs[id];
         }
-      })
+      });
     },
     get: function(selector) {
       var ret = this.meta.c.merge({}, this.weet);
       var split = selector.split('.');
-      for (var i in split) {
+      for (var i = 0; i < split.length; i++) {
+        if (!ret) break;
         ret = ret[split[i]];
       }
       return ret;
     },
     set: function(selector, value) {
-      this.extend(this.meta.c.objectify(selector, value));
+      var location = this.meta.c.merge({}, this.weet);
+      this.meta.c.overwrite(location, selector.split('.'), value);
+      window.location.hash = Q.encode(JSON.stringify(location));
+      return value;
     },
-    createHash: function(selector, value) {
-      return this.extendHash(this.meta.c.objectify(selector, value))
-    },
-    extendHash: function(obj) {
-      return Q.encode(JSON.stringify(this.meta.c.merge({}, this.weet, obj)))
-    },
-    overwriteHash: function(obj) {
-      window.location.hash = Q.encode("!"+JSON.stringify(obj));
-    },
-    clearHash: function() {
-      window.location.hash = Q.encode("!"+JSON.stringify({}));
+    setHash: function(selector, value) {
+      var location = this.meta.c.merge({}, this.weet);
+      this.meta.c.overwrite(location, selector.split('.'), value);
+      return location;
     },
     extend: function(obj) {
       var location = this.meta.c.merge({}, this.weet, obj);
-      window.location.hash = Q.encode("!"+JSON.stringify(location));
+      window.location.hash = Q.encode(JSON.stringify(location));
+    },
+    extendHash: function(obj) {
+      return Q.encode(JSON.stringify(this.extendObj(obj)));
+    },
+    createHash: function(selector, value) {
+      return this.extendHash(this.meta.c.objectify(selector, value));
+    },
+    extendHref: function(obj) {
+      return '#' + this.extendHash(obj);
+    },
+    extendObj: function(obj) {
+      return this.meta.c.merge({}, this.weet, obj);
+    },
+    overwriteHash: function(obj) {
+      window.location.hash = Q.encode(JSON.stringify(obj));
+    },
+    clearHash: function() {
+      window.location.hash = Q.encode(JSON.stringify({}));
     }
   }
-})
+});
