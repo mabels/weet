@@ -8,34 +8,90 @@ if(typeof importScript != "undefined") {
 Class('Weet', {
   does: Joose.Singleton,
   classMethods: {
-      subscribe: function(selector, fn) {
-        return this.getInstance().subscribe(selector, fn) 
-      },
-      unsubscribe: function(id) {
-        this.getInstance().unsubscribe(id)
-      },
-      set: function(selector, value) {
-        this.getInstance().set(selector, value) 
-      },
-      get: function(selector) {
-        return this.getInstance().get(selector) 
-      },
-      extend: function(obj) {
-        this.getInstance().extend(obj)
-      },
-      createHash: function(selector, value) {
-        return this.getInstance().createHash(selector, value) 
-      },
-      extendHash: function(obj) {
-        return this.getInstance().extendHash(obj) 
-      },
-      deReference: function(name, base) {
-        var split = name.split('.')
-        var result = _(split).select(function(c) {
-          base = !base || base[c]
-          return typeof(base) != 'undefined'
-        })
-        return { found: result.length == split.length, value: base }
+    subscribe: function(selector, fn) {
+      return this.getInstance().subscribe(selector, fn);
+    },
+    unsubscribe: function(id) {
+      this.getInstance().unsubscribe(id);
+    },
+    get: function(selector) {
+      return this.getInstance().get(selector);
+    },
+    set: function(selector, value) {
+      return this.getInstance().set(selector, value);
+    },
+    setHash: function(selector, value) {
+      return this.getInstance().setHash(selector, value);
+    },
+    setHref: function(selector, obj) {
+      return this.getInstance().setHref(selector, obj);
+    },
+    obj: function() {
+      return this.merge({}, this.getInstance().weet);
+    },
+    extend: function(obj) {
+      this.getInstance().extend(obj);
+    },
+    createHash: function(selector, value) {
+      return this.getInstance().createHash(selector, value);
+    },
+    extendHash: function(obj) {
+      return this.getInstance().extendHash(obj);
+    },
+    extendHref: function(obj) {
+      return this.getInstance().extendHref(obj);
+    },
+    extendObj: function(obj) {
+      return this.getInstance().extendObj(obj);
+    },
+    overwriteHash: function(obj) {
+      this.getInstance().overwriteHash(obj);
+    },
+    clearHash: function() {
+      this.getInstance().clearHash();
+    },
+    deReference: function(name, base) {
+      var split = name.split('.');
+      var result = _(split).select(function(c) {
+        base = !base || base[c];
+        return typeof(base) != 'undefined';
+      });
+      return { found: result.length == split.length, value: base };
+    },
+    objectify: function(selector, value) {
+      var split = selector.split('.');
+      var last = split.pop();
+      var base = {};
+      _(split).reduce(base, function(tmp, c) {
+        return tmp[c] = {};
+      })[last] = value;
+      return base;
+    },
+    parse: function(str) {
+      if (str == '#' || str.length == 0) {
+        return {};
+      }
+      str = str.slice(1);
+      
+      try {
+        return JSON.parse(Q.decode(str));
+      } catch (e) {
+        return null;
+      }
+    },
+    merge: function(target) {
+      for (var i = 1, len = arguments.length; i < len; i++) {
+        var val = arguments[i];
+        var copy = JSON.parse(JSON.stringify(val));
+        for (var j in copy) {
+          if (copy[j] === null) {
+            delete target[j];
+          } else if (typeof target[j] == 'object') {
+            this.merge(target[j], copy[j]);
+          } else {
+            target[j] = copy[j];
+          }
+        }
       }
       return target;
     },
@@ -116,6 +172,7 @@ Class('Weet', {
       this.subscriptions = {};
       this.subscription_id = 0;
       if (typeof window != "undefined") {
+        this.weet = this.meta.c.parse(window.location.hash);
         this.observe();
         if(window.location.hash.length > 1) {
           $(window).trigger('hashchange');
@@ -190,12 +247,17 @@ Class('Weet', {
       window.location.hash = Q.encode(JSON.stringify(location));
       return value;
     },
-    get: function(selector) {
-      var ref = Weet.deReference(selector, this.weet)
-      return ref.found ? ref.value : null
+    setHash: function(selector, value) {
+      var location = this.meta.c.merge({}, this.weet);
+      this.meta.c.overwrite(location, selector.split('.'), value);
+      return Q.encode(JSON.stringify(location));
     },
-    createHash: function(selector, value) {
-      return this.extendHash(this.objectify(selector, value))
+    setHref: function(selector, obj) {
+       return '#' + this.setHash(selector, obj);
+     },
+    extend: function(obj) {
+      var location = this.meta.c.merge({}, this.weet, obj);
+      window.location.hash = Q.encode(JSON.stringify(location));
     },
     extendHash: function(obj) {
       return Q.encode(JSON.stringify(this.extendObj(obj)));
