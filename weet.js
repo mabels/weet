@@ -8,45 +8,101 @@ if(typeof importScript != "undefined") {
 Class('Weet', {
   does: Joose.Singleton,
   classMethods: {
+    /**
+     * @param selector The path to subscribe to
+     * @param fn The callback to execute on weet changes
+     * @returns the subscription id
+     */
     subscribe: function(selector, fn) {
       return this.getInstance().subscribe(selector, fn);
     },
+    /**
+     * @param id The subscription id to unsubscribe
+     */
     unsubscribe: function(id) {
       this.getInstance().unsubscribe(id);
     },
+    /**
+     * @param selector The path to return
+     * @returns the object stored at the given selector
+     */
     get: function(selector) {
       return this.getInstance().get(selector);
     },
+    /**
+     * @param selector The selector to set a new value for
+     * @param value The value to set
+     * @returns the set value
+     */
     set: function(selector, value) {
       return this.getInstance().set(selector, value);
     },
+    /**
+     * @param selector The selector to set the new value for
+     * @param value The value to set
+     * @returns the weet hash
+     */
     setHash: function(selector, value) {
       return this.getInstance().setHash(selector, value);
     },
+    /**
+     * @param selector The selector to set the new value for
+     * @param obj The value to set
+     * @returns the weet hash with leading hash
+     */
     setHref: function(selector, obj) {
       return this.getInstance().setHref(selector, obj);
     },
+    /**
+     * @returns the current weet object
+     */
     obj: function() {
       return this.merge({}, this.getInstance().weet);
     },
+    /**
+     * @param obj The object to merge into the weet state
+     */
     extend: function(obj) {
       this.getInstance().extend(obj);
     },
+    /**
+     * @param selector The selector to extend
+     * @param value The value to set
+     * @returns the extended weet state
+     */
     createHash: function(selector, value) {
       return this.getInstance().createHash(selector, value);
     },
+    /**
+     * @param obj The object to extend the state with
+     * @returns the extended weet state as string
+     */
     extendHash: function(obj) {
       return this.getInstance().extendHash(obj);
     },
+    /**
+     * @param obj The object to extend the state with
+     * @returns the extended weet state as string with prefixed hash
+     */
     extendHref: function(obj) {
       return this.getInstance().extendHref(obj);
     },
+    /**
+     * @param obj The object to extend the state with
+     * @returns the extended weet state as object
+     */
     extendObj: function(obj) {
       return this.getInstance().extendObj(obj);
     },
+    /**
+     * @param obj The new weet state to set
+     */
     overwriteHash: function(obj) {
       this.getInstance().overwriteHash(obj);
     },
+    /**
+     * Clears the current state
+     */
     clearHash: function() {
       this.getInstance().clearHash();
     },
@@ -62,9 +118,9 @@ Class('Weet', {
       var split = selector.split('.');
       var last = split.pop();
       var base = {};
-      _(split).reduce(base, function(tmp, c) {
+      _(split).reduce(function(tmp, c) {
         return tmp[c] = {};
-      })[last] = value;
+      }, base)[last] = value;
       return base;
     },
     parse: function(str) {
@@ -94,6 +150,44 @@ Class('Weet', {
         }
       }
       return target;
+    },
+    /**
+     * Encodes all < and " in the target recusivly
+     */
+    encode: function(target) {
+      if (_(target).isString()) {
+        target = target.replace(/([<"'\/`]|&#60;|&#34;|&#39;)/g, function(match) {
+          var repl = {
+              "<": "&lt;",
+              "&#60;": "&lt;",
+              '"': "&quot;",
+              "&#34;": "&quot;",
+              "'": "&apos;",
+              "&#39;": "&apos;",
+              "/": "&#x2F;",
+              "`": "&#96;"
+          };
+          return repl[match]; 
+        });
+      } else if (_(target).isArray()) {
+        var recode = [];
+        _(target).each(function(value) {
+          recode.push(this.encode(value));
+        }, this);
+        return recode;
+      } else if (typeof target == "object") {
+        var recode = {};
+        _(target).each(function(value, key) {
+          recode[this.encode(key)] = this.encode(value);
+        }, this);
+        return recode;
+      }
+      return target;
+    },
+    enableEncoding: function() {
+      var encode = this.encode;
+      var merge = this.merge;
+      this.merge = function(target) { return encode(merge(target)); };
     },
     overwrite: function(obj, keys, value) {
       var key = keys.shift();
@@ -242,9 +336,7 @@ Class('Weet', {
       return ret;
     },
     set: function(selector, value) {
-      var location = this.meta.c.merge({}, this.weet);
-      this.meta.c.overwrite(location, selector.split('.'), value);
-      window.location.hash = Q.encode(JSON.stringify(location));
+      window.location.hash = this.setHash(selector, value);
       return value;
     },
     setHash: function(selector, value) {
