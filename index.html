@@ -151,25 +151,6 @@ $(function() {
   // get
   Weet.set('some.value.to.get', 'blubs')
   $('.get').html('blubs=' + Weet.get('some.value.to.get'))
-  
-  // encode
-  function assert(now, exp) { if (now != exp) { origAlert('assert failed: expected(' + exp + ') got (' + now + ')'); } }
-  var enc = Weet.encode({
-    "abc": "def", 
-    "hack": { 
-      "key<script" : 'value&#60;', 
-      'key"': "value&#34;", 
-      "key'": "value&#39;" 
-    },
-    "array": [1, 2, 3, "abc/def", '`']
-  });
-  assert(enc["abc"], "def");
-  assert(enc.hack['key&lt;script'], "value&lt;");
-  assert(enc.hack['key&quot;'], "value&quot;");
-  assert(enc.hack['key&apos;'], "value&apos;");
-  assert(enc.hack['key&apos;'], "value&apos;");
-  assert(enc.array[3], "abc&#x2F;def");
-  assert(enc.array[4], "&#96;");
 })
 </script>
 </body>
