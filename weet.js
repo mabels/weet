@@ -130,10 +130,13 @@ Class('Weet', {
       str = str.slice(1);
       
       try {
-        return JSON.parse(Q.decode(str));
+        return JSON.parse(this.filter(Q.decode(str)));
       } catch (e) {
         return null;
       }
+    },
+    filter: function(str) {
+      return str;
     },
     merge: function(target) {
       for (var i = 1, len = arguments.length; i < len; i++) {
@@ -150,44 +153,6 @@ Class('Weet', {
         }
       }
       return target;
-    },
-    /**
-     * Encodes all < and " in the target recusivly
-     */
-    encode: function(target) {
-      if (_(target).isString()) {
-        target = target.replace(/([<"'\/`]|&#60;|&#34;|&#39;)/g, function(match) {
-          var repl = {
-              "<": "&lt;",
-              "&#60;": "&lt;",
-              '"': "&quot;",
-              "&#34;": "&quot;",
-              "'": "&apos;",
-              "&#39;": "&apos;",
-              "/": "&#x2F;",
-              "`": "&#96;"
-          };
-          return repl[match]; 
-        });
-      } else if (_(target).isArray()) {
-        var recode = [];
-        _(target).each(function(value) {
-          recode.push(this.encode(value));
-        }, this);
-        return recode;
-      } else if (typeof target == "object") {
-        var recode = {};
-        _(target).each(function(value, key) {
-          recode[this.encode(key)] = this.encode(value);
-        }, this);
-        return recode;
-      }
-      return target;
-    },
-    enableEncoding: function() {
-      var encode = this.encode;
-      var merge = this.merge;
-      this.merge = function(target) { return encode(merge(target)); };
     },
     overwrite: function(obj, keys, value) {
       var key = keys.shift();
